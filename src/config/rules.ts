@@ -1,0 +1,68 @@
+/**
+ * ============================================================================
+ * TelopGuard 校正ルール設定ファイル (Formatting & Grammar Rules)
+ * ============================================================================
+ * 
+ * ⚠️ 【編集注意】 ⚠️
+ * このファイルには、TelopGuardの「機械的な文字校正（正規表現ルール）」が定義されています。
+ * 辞書（dictionaries.ts）とは異なり、プログラムの挙動そのものを制御する正規表現が含まれます。
+ * 構造を誤るとシステムがエラーで止まる可能性があるため、追加・編集には十分ご注意ください。
+ */
+
+export const FORMATTING_RULES = {
+    // ---------------------------------------------------------
+    // 0. 基本フォーマット（Critical）
+    // ---------------------------------------------------------
+
+    // Rule 0.1: 全角スペースを半角スペースに変換
+    fullWidthSpace: {
+        pattern: /　/g,
+        replacement: ' ',
+        reason: "空白は半角"
+    },
+
+    // Rule 0.2: 句読点（、。）の削除・スペース化
+    punctuation: {
+        pattern: /[、。]/g,
+        replaceMaru: { pattern: /。/g, replacement: '' },
+        replaceTen: { pattern: /、/g, replacement: ' ' },
+        reason: "句読点は使わない"
+    },
+
+    // Rule 0.3: 連続する半角スペースを1つにまとめる
+    consecutiveSpaces: {
+        pattern: / {2,}/g,
+        replacement: ' ',
+        reason: "空白は連続しない"
+    },
+
+    // Rule 1: 全角数字を半角数字に変換
+    fullWidthNumbers: {
+        pattern: /[０-９]/g,
+        reason: "数字は半角"
+    },
+
+    // Rule 1.5: 全角ピリオド・カンマの半角化
+    // ユーザー指定: 1.1 や 2,000 などの数字でしか使わないため半角統一
+    fullWidthPeriodComma: {
+        pattern: /[．，]/g,
+        replacePeriod: { pattern: /．/g, replacement: '.' },
+        replaceComma: { pattern: /，/g, replacement: ',' },
+        reason: "ピリオドとカンマは半角"
+    },
+
+    // Rule 2: 半角記号を全角記号に変換
+    // ※ プログラム内（textProcessor.ts）で、例外判定を手動で行っているため、
+    // ここでは検知用の正規表現のみを定義します。
+    // ※ ピリオド(.)とカンマ(,)は半角統一のルールが追加されたため、全角化から除外。
+    halfWidthSymbolsToFull: {
+        pattern: /[!"#$%&'()*+\-/:;<=>?@[\\\]^_`{|}~]/,
+        reason: "一般記号は全角"
+    },
+
+    // Rule 2.5: 半角カタカナを全角カタカナに変換
+    halfWidthKatakana: {
+        pattern: /[ｦ-ﾟ]/g,
+        reason: "カタカナは全角"
+    }
+};

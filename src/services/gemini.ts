@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { LineData } from "../utils/textProcessor";
+import { AI_CONTEXT_DICTIONARY } from "../config/dictionaries";
 
 // System Prompt that defines the strict rules
-const SYSTEM_PROMPT = `
+const getSystemPrompt = () => `
 あなたはプロフェッショナルなテロップ校正AIです。
 以下の「厳格な制作ガイドライン」に基づき、ユーザーが入力したテロップテキストを校正してください。
 
@@ -15,43 +16,57 @@ const SYSTEM_PROMPT = `
 **「明らかに間違っている誤字脱字」**や**「読みにくい表記」**のみを指摘してください。
 **個人の文体や、口語表現（〜させてもらう、等）は尊重し、勝手に書き換えないでください。**
 
+【プロジェクト固有の用語・人物辞典（判別用）】
+以下の人物名や用語が文脈に登場した場合、前後の文脈から同一人物の可能性がないかを判断し、必要に応じて提案してください：
+${AI_CONTEXT_DICTIONARY}
+
 【制作ガイドライン】
-    - 「〜という」「〜こと」「〜とき」などの**形式名詞**はひらがなにする。
-    - **補助動詞**（〜していく、〜してくる、〜していただく、〜してほしい）はひらがなにする。
-    - 特に**「上手くいく（成功する）」の「いく」はひらがな**にする。「上手く行く」や「上手く言う（誤変換）」は修正対象。
-    - **漢字で一般的なもの（頃、位、等）は無理にひらがなにしない。**
-    - 動詞としての「言う」「事（事実）」「時（特定の時点）」は漢字のままにする。
+1. **指示事項**:
+    - 原文の「言い間違い（例：上手く言う）」や「同音異義語の誤変換」を見つけることにのみ集中してください。
+    - **漢字やひらがなの表記ゆれ（「こと」「とき」「いく」「ぐらい」など）は、人間が意図して書いている可能性があるため、一切修正・指摘しないでください。**
+    - 「何年」「何回」などの助数詞・量を表す言葉や記号・数字についても、別のプログラムで自動修正されるため無視してください。
+    - **①②③等の丸付き数字・(1)(2)等の括弧付き数字は、それ自体を指摘しないでください。**
+    - **日本の漫画、アニメ、ネットスラングなどのサブカル用語（例：「キセキの世代」など）、意図的なカタカナ表記、一般的な固有名詞は、無理に一般的な日本語（例：奇跡）に直さないでください。**
 
 2. **禁止事項（重要）**:
-    - **言葉の言い換え禁止**: 「させてもらった」→「させていただいた」のように、丁寧語や言い回しを変える修正は**絶対に行わない**こと。
+    - **言葉の言い換えや語尾の変更は絶対禁止**: 「させてもらった」→「させていただいた」、「〜あります」→「〜ある」などのように、意味は同じでも表現や語尾を変える修正は**絶対に行わない**こと。
+    - **表記の変更禁止**: ひらがなを漢字にする、漢字をひらがなにするなどの「表記の修正」はあなたの役割ではありません。絶対に行わないでください。
     - **意味の変容禁止**: 原文のニュアンスが変わる修正はしない。
 
 3. **誤字脱字・誤変換の指摘（強化）**:
     - **同音異義語の誤変換**を重点的にチェックせよ。
     - 例：「上手く言っていた（発言）」⇔「上手くいっていた（進行）」
-    - **【重要】断定できない場合は、「要確認：〜の可能性はありませんか？」という形式で提案すること。**
+    - **【重要】見慣れない用語やサブカル用語が「誤字」なのか「実在する用語」なのか迷った場合は、あなたに与えられているGoogle検索ツールを使用して事実確認を行ってください。（例：「キセキの世代」を調べてアニメ用語だと分かれば修正しない）**
+    - **Google検索を行って未知の用語を補完・確認した場合は、理由（reason）の欄に必ず『Web検索で確認済み (URL: https://...)』のように参照元のURLを併記してください。**
+    - 検索等を行っても判断に迷う場合は、「【要確認】〜の可能性はありませんか？」という形式で提案として出力すること。
     - 「上手く言いくるめる」のような正しい表現まで誤検知しないよう注意すること。
     - 明らかな誤入力（変身→返信）は修正せよ。
+    - **【漢数字のアラビア数字変換】**
+      数量や回数には半角のアラビア数字（1〜10）を使用してください。
+      （◯使用する例：1億2805万人、1番目、2番目、3つのボタン、2進法、第3回大会、3次元、4か月）
+      ただし、慣用的表現、熟語、概数、固有名詞、副詞など、漢数字を使用することが一般的な語句では漢数字のままにしてください。絶対に変換しないでください。
+      （◯使用する例：世界一、一時的、一部分、第三者、一種の、一部の、一番に、数百倍、二次関数、四捨五入、四角い、五大陸）
 
 【出力フォーマット】
 修正が必要な行のみを、以下のJSON形式でリストアップしてください。
 **「level」フィールドには、以下の基準で "Critical" / "Warning" / "Info" を設定してください。**
     - **Critical**: 誤字脱字、明白な誤変換（意味が変わるもの）、数字・単位の間違い。
     - **Warning**: 表記ゆれ（漢字/ひらがな）、推奨される表記への修正。
-    - **Info**: 念のための確認（同音異義語の提案など）。
+    - **Info**: 念のための確認（同音異義語の提案など。※【要確認】として出力した場合など）。
 
 \`\`\`json
 [
   {
     "id": "line-ID",
     "original": "元のテキスト",
-    "corrected": "修正後のテキスト",
-    "reason": "修正理由（簡潔に）",
+    "corrected": "修正後のテキスト（または【要確認】の提案文）",
+    "reason": "修正理由（簡潔に。前置き不要）",
     "level": "Critical"
   }
 ]
 \`\`\`
 `;
+
 
 // Helper to list available models for debugging
 export async function listAvailableModels(apiKey: string) {
@@ -69,7 +84,11 @@ export async function listAvailableModels(apiKey: string) {
     }
 }
 
-export async function checkTeopWithGemini(apiKey: string, lines: LineData[]) {
+export async function checkTeopWithGemini(
+    apiKey: string,
+    lines: LineData[],
+    onProgress?: (current: number, total: number) => void
+) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     // Dynamic Model Discovery Strategy
@@ -83,14 +102,22 @@ export async function checkTeopWithGemini(apiKey: string, lines: LineData[]) {
             .filter((m: any) => m.supportedGenerationMethods?.includes("generateContent"))
             .map((m: any) => m.name.replace('models/', ''));
 
-        // 2. Sort them by preference (Newer > Older)
-        // We prioritize 'flash' models for speed, then 'pro'.
+        // 2. Sort them by preference (Newer/Pro > Older/Flash)
+        // User explicitly requested to prioritize 'Pro' models over 'Flash' for maximum accuracy.
         const prioritize = (name: string) => {
-            if (name.includes('gemini-2.0-flash')) return 10;
-            if (name.includes('gemini-1.5-flash')) return 9;
-            if (name.includes('gemini-1.5-pro')) return 8;
-            if (name.includes('gemini-1.0-pro')) return 7;
-            return 0;
+            if (name.includes('-latest')) return 110;          // 1st: Always prefer the highest officially recommended latest alias
+            if (name === 'gemini-3.1-pro-preview') return 100; // 2nd: The explicit new flagship Pro model
+            if (name.includes('gemini-2.5-pro')) return 90;    // 3rd: The current stable Pro model
+
+            // Note: gemini-3.0-pro / gemini-3-pro-preview are discontinued on Mar 9, 2026. Avoid setting high priority.
+
+            // Fallbacks (Flash models)
+            if (name.includes('gemini-3.0-flash')) return 80;
+            if (name === 'gemini-2.5-flash') return 70;
+            if (name.includes('gemini-1.5-pro')) return 60;
+            if (name.includes('gemini-1.5-flash')) return 50;
+            if (name.includes('gemini-1.0-pro')) return 40;
+            return 0; // Everything else
         };
 
         modelsToTry = validModels.sort((a: string, b: string) => prioritize(b) - prioritize(a));
@@ -101,10 +128,12 @@ export async function checkTeopWithGemini(apiKey: string, lines: LineData[]) {
         console.warn("Failed to list models dynamically, falling back to static list.", e);
         // Fallback list if listing fails
         modelsToTry = [
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-pro",
+            "gemini-3.0-flash",
             "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
             "gemini-1.5-pro",
+            "gemini-1.5-flash",
             "gemini-1.0-pro"
         ];
     }
@@ -117,52 +146,98 @@ export async function checkTeopWithGemini(apiKey: string, lines: LineData[]) {
     const validLines = lines.filter(l => !l.isNoise);
     if (validLines.length === 0) return [];
 
-    const inputJson = validLines.map(l => ({
-        id: l.id,
-        text: l.originalText
-    }));
+    let allCorrections: any[] = [];
+    let lastError;
+    const CHUNK_SIZE = 30; // 30 lines per API request to prevent timeout and allow progress tracking
 
-    const userPrompt = `
+    let workingModel: any = null;
+    let workingModelName = "";
+
+    if (onProgress) {
+        onProgress(0, validLines.length);
+    }
+
+    for (let i = 0; i < validLines.length; i += CHUNK_SIZE) {
+        const chunk = validLines.slice(i, i + CHUNK_SIZE);
+        const inputJson = chunk.map(l => ({
+            id: l.id,
+            text: l.originalText
+        }));
+
+        const userPrompt = `
 以下のテロップリストを校正してください。
 
 ${JSON.stringify(inputJson, null, 2)}
 `;
 
-    let lastError;
+        let chunkSuccess = false;
+        const modelsLoop = workingModel ? [workingModelName] : modelsToTry;
 
-    for (const modelName of modelsToTry) {
-        try {
-            console.log(`Attempting with model: ${modelName}`);
-            const model = genAI.getGenerativeModel({ model: modelName });
-            const result = await model.generateContent([SYSTEM_PROMPT, userPrompt]);
-            const response = result.response;
-            const text = response.text();
+        for (const modelName of modelsLoop) {
+            try {
+                if (!workingModel) {
+                    console.log(`Attempting with model: ${modelName} and Google Search Tool`);
+                }
+                const model = genAI.getGenerativeModel({
+                    model: modelName,
+                    tools: [{ googleSearch: {} } as any] // Enable Google Search Grounding
+                });
 
-            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            const json = JSON.parse(cleanText);
+                // Add a small delay between chunks to avoid rate limit spikes (RPM limit mitigation)
+                if (i > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 3500)); // 3.5秒待機してゆっくりリクエスト
+                }
 
-            // Strict Filter: Remove corrections that are identical to original
-            // This prevents "False Positives" where AI flags text that is already correct
-            const realCorrections = json.filter((item: any) => {
-                const original = item.original || "";
-                const corrected = item.corrected || "";
-                // Ignore if identical (ignoring minor whitespace differences?)
-                // Let's stick to simple trim() equality for now. 
-                // If user wants strict punctuation removal, whitespace matters, but for "Hiragana", it shouldn't.
-                // However, our Deterministic rules handle punctuation.
-                return original.trim() !== corrected.trim();
-            });
+                const result = await model.generateContent([getSystemPrompt(), userPrompt]);
+                const response = result.response;
+                const text = response.text();
 
-            return realCorrections;
+                const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                let json = [];
+                try {
+                    json = JSON.parse(cleanText);
+                } catch (parseError) {
+                    console.error("JSON Parse Error for chunk:", cleanText);
+                    // Skip invalid JSON chunks gracefully
+                    json = [];
+                }
 
-        } catch (error: any) {
-            console.warn(`Failed with ${modelName}:`, error.message);
-            lastError = error;
-            // Continue to next model
+                const realCorrections = Array.isArray(json) ? json.filter((item: any) => {
+                    const original = item.original || "";
+                    const corrected = item.corrected || "";
+                    return original.trim() !== corrected.trim();
+                }) : [];
+
+                allCorrections.push(...realCorrections);
+
+                if (!workingModel) {
+                    workingModel = model;
+                    workingModelName = modelName;
+                }
+
+                chunkSuccess = true;
+                break; // Model success, move to next chunk
+
+            } catch (error: any) {
+                console.warn(`Failed chunk with ${modelName}:`, error.message);
+                lastError = error;
+                // If working model fails (e.g., 429 Error), unset it to try fallback models
+                if (workingModel) {
+                    workingModel = null;
+                }
+            }
+        } // End models loop
+
+        if (!chunkSuccess) {
+            console.error("All models failed for a chunk.");
+            throw lastError || new Error("Chunk processing failed on all models.");
         }
-    }
 
-    // If all failed
-    console.error("All models failed.");
-    throw lastError;
+        if (onProgress) {
+            const currentProcessed = Math.min(i + CHUNK_SIZE, validLines.length);
+            onProgress(currentProcessed, validLines.length);
+        }
+    } // End chunks loop
+
+    return allCorrections;
 }
