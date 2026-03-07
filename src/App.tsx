@@ -90,8 +90,10 @@ function App() {
             const models = await listAvailableModels(apiKey);
             const names = models.map((m: any) => m.name.replace('models/', ''));
             setDebugLog(`✅ Connection Success!\nAvailable Models:\n${names.join('\n')}`);
+            alert(`✅ 接続成功！\n\n利用可能なモデル:\n${names.join('\n')}`);
         } catch (err: any) {
             setDebugLog(`❌ Connection Failed:\n${err.message}`);
+            alert(`❌ 接続失敗：\n${err.message}\n\n※正しいAPIキーが入力されているか確認してください。`);
         }
     };
 
@@ -252,7 +254,9 @@ ${details}
                     <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded border border-slate-600">
                         <span className="text-xs text-slate-400 font-medium">APIキー:</span>
                         <input
-                            type="password"
+                            type="text"
+                            autoComplete="off"
+                            data-1p-ignore="true"
                             placeholder="Gemini APIキー"
                             className="bg-transparent border-none text-sm w-32 focus:outline-none text-slate-200 placeholder-slate-600"
                             value={apiKey}
