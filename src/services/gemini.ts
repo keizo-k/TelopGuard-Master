@@ -105,19 +105,29 @@ export async function checkTeopWithGemini(
         // 2. Sort them by preference (Newer/Pro > Older/Flash)
         // User explicitly requested to prioritize 'Pro' models over 'Flash' for maximum accuracy.
         const prioritize = (name: string) => {
-            if (name.includes('-latest')) return 110;          // 1st: Always prefer the highest officially recommended latest alias
-            if (name === 'gemini-3.1-pro-preview') return 100; // 2nd: The explicit new flagship Pro model
-            if (name.includes('gemini-2.5-pro')) return 90;    // 3rd: The current stable Pro model
+            // 1st: The absolute best latest aliases
+            if (name === 'gemini-pro-latest') return 120;
+            if (name === 'gemini-flash-latest') return 110;
 
-            // Note: gemini-3.0-pro / gemini-3-pro-preview are discontinued on Mar 9, 2026. Avoid setting high priority.
+            // 2nd: The explicit new flagship Pro model
+            if (name === 'gemini-3.1-pro-preview') return 100;
+
+            // Filter out unwanted sub-variants (lite, audio, tts, vision, etc.)
+            if (name.includes('lite') || name.includes('audio') || name.includes('tts') || name.includes('vision') || name.includes('think')) {
+                return 0;
+            }
+
+            // 3rd: Current stable models
+            if (name === 'gemini-2.5-pro') return 90;
 
             // Fallbacks (Flash models)
-            if (name.includes('gemini-3.0-flash')) return 80;
+            if (name === 'gemini-3.0-flash') return 80;
             if (name === 'gemini-2.5-flash') return 70;
-            if (name.includes('gemini-1.5-pro')) return 60;
-            if (name.includes('gemini-1.5-flash')) return 50;
-            if (name.includes('gemini-1.0-pro')) return 40;
-            return 0; // Everything else
+            if (name === 'gemini-1.5-pro') return 60;
+            if (name === 'gemini-1.5-flash') return 50;
+            if (name === 'gemini-1.0-pro') return 40;
+
+            return 0; // Filter out everything else
         };
 
         modelsToTry = validModels.sort((a: string, b: string) => prioritize(b) - prioritize(a));
