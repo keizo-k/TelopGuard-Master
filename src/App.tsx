@@ -276,6 +276,7 @@ ${details}
                             autoComplete="off"
                             data-1p-ignore="true"
                             placeholder="Gemini APIキー"
+                            style={{ WebkitTextSecurity: "disc" } as React.CSSProperties & { WebkitTextSecurity: string }}
                             className="bg-transparent border-none text-sm w-32 focus:outline-none text-slate-200 placeholder-slate-600"
                             value={apiKey}
                             onChange={(e) => saveApiKey(e.target.value)}
