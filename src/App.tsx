@@ -113,6 +113,9 @@ function App() {
 
             // Update lines with corrections (Merge AI + Deterministic Rules)
             const updatedLines = lines.map(line => {
+                // BUG FIX: Ignore noise lines (e.g. English-only lines, URLs) that were intentionally skipped in mechanical checks
+                if (line.isNoise) return line;
+
                 const fix = corrections.find((c: any) => c.id === line.id);
                 const codeCheck = applyDeterministicRules(line.originalText);
 
