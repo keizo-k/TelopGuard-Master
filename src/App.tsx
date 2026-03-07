@@ -94,10 +94,12 @@ function App() {
             const prioritize = (name: string) => {
                 // 1st: The absolute best latest aliases
                 if (name === 'gemini-pro-latest') return 120;
-                if (name === 'gemini-flash-latest') return 110;
 
                 // 2nd: The explicit new flagship Pro model
-                if (name === 'gemini-3.1-pro-preview') return 100;
+                if (name === 'gemini-3.1-pro-preview') return 110;
+
+                // 3rd: The latest flash model
+                if (name === 'gemini-flash-latest') return 100;
 
                 // Filter out unwanted sub-variants (lite, audio, tts, vision, etc.)
                 if (name.includes('lite') || name.includes('audio') || name.includes('tts') || name.includes('vision') || name.includes('think')) {
