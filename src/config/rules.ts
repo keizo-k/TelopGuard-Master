@@ -51,12 +51,21 @@ export const FORMATTING_RULES = {
         reason: "ピリオドとカンマは半角"
     },
 
+    // Rule 1.6: 全角コロン・スラッシュの半角化
+    // ユーザー指定: 全角コロン(：)とスラッシュ(／)は使わないため半角統一
+    fullWidthColonSlash: {
+        pattern: /[：／]/g,
+        replaceColon: { pattern: /：/g, replacement: ':' },
+        replaceSlash: { pattern: /／/g, replacement: '/' },
+        reason: "コロンとスラッシュは半角"
+    },
+
     // Rule 2: 半角記号を全角記号に変換
     // ※ プログラム内（textProcessor.ts）で、例外判定を手動で行っているため、
     // ここでは検知用の正規表現のみを定義します。
-    // ※ ピリオド(.)とカンマ(,)は半角統一のルールが追加されたため、全角化から除外。
+    // ※ ピリオド(.)、カンマ(,)、コロン(:)、スラッシュ(/)は半角統一のため全角化から除外。
     halfWidthSymbolsToFull: {
-        pattern: /[!"#$%&'()*+\-/:;<=>?@[\\\]^_`{|}~]/,
+        pattern: /[!"#$%&'()*+\-;<=>?@[\\\]^_`{|}~]/,
         reason: "一般記号は全角"
     },
 

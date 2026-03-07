@@ -83,6 +83,15 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
         isChanged = true;
     }
 
+    // Rule 1.6: Full-width Colon/Slash -> Half-width (: /)
+    if (FORMATTING_RULES.fullWidthColonSlash.pattern.test(correction)) {
+        correction = correction
+            .replace(FORMATTING_RULES.fullWidthColonSlash.replaceColon.pattern, FORMATTING_RULES.fullWidthColonSlash.replaceColon.replacement)
+            .replace(FORMATTING_RULES.fullWidthColonSlash.replaceSlash.pattern, FORMATTING_RULES.fullWidthColonSlash.replaceSlash.replacement);
+        reasons.push({ text: FORMATTING_RULES.fullWidthColonSlash.reason, level: "Critical" });
+        isChanged = true;
+    }
+
     // Rule 2: Half-width Symbols -> Full-width
     // ※ ユーザー指定により、カンマ(,) と ピリオド(.) は除外（全角化の対象外、半角のままにする）
     if (FORMATTING_RULES.halfWidthSymbolsToFull.pattern.test(correction)) {
@@ -103,23 +112,12 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
                 let charCode = char.charCodeAt(0);
 
                 // 半角記号の範囲 (ASCII 0x21-0x2F, 0x3A-0x40, 0x5B-0x60, 0x7B-0x7E)
-                // ただし . (0x2E) と , (0x2C) は変換対象外とするためスキップ
-                if (charCode === 0x2E || charCode === 0x2C) {
+                // ただし . (0x2E), , (0x2C), : (0x3A), / (0x2F) は変換対象外とするためスキップ
+                if (charCode === 0x2E || charCode === 0x2C || charCode === 0x3A || charCode === 0x2F) {
                     continue;
                 }
 
                 if (charCode >= 0x21 && charCode <= 0x7E && !/[a-zA-Z0-9]/.test(char)) {
-
-                    // 例外チェック1: URLのコロン (://)
-                    if (char === ':' && i + 2 < chars.length && chars[i + 1] === '/' && chars[i + 2] === '/') {
-                        continue; // 変換しない
-                    }
-
-                    // 例外チェック2: 時間表記のコロン (\d:\d)
-                    if (char === ':' && i > 0 && i + 1 < chars.length && /[0-9０-９]/.test(chars[i - 1]) && /[0-9０-９]/.test(chars[i + 1])) {
-                        continue; // 変換しない
-                    }
-
                     // 上記例外に当てはまらない場合は全角に変換 (+0xFEE0)
                     // ※一部の文字（半角カナの記号など）は除外、純粋なASCII記号のみ対象
                     chars[i] = String.fromCharCode(charCode + 0xFEE0);
