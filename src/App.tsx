@@ -89,8 +89,26 @@ function App() {
         try {
             const models = await listAvailableModels(apiKey);
             const names = models.map((m: any) => m.name.replace('models/', ''));
-            setDebugLog(`✅ Connection Success!\nAvailable Models:\n${names.join('\n')}`);
-            alert(`✅ 接続成功！\n\n利用可能なモデル:\n${names.join('\n')}`);
+
+            // Filter and sort the models that we actually care about (just like gemini.ts prioritized list)
+            const prioritize = (name: string) => {
+                if (name.includes('-latest')) return 110;
+                if (name === 'gemini-3.1-pro-preview') return 100;
+                if (name.includes('gemini-2.5-pro')) return 90;
+                if (name.includes('gemini-3.0-flash')) return 80;
+                if (name === 'gemini-2.5-flash') return 70;
+                if (name.includes('gemini-1.5-pro')) return 60;
+                if (name.includes('gemini-1.5-flash')) return 50;
+                if (name.includes('gemini-1.0-pro')) return 40;
+                return 0;
+            };
+
+            const targetModels = names
+                .filter((n: string) => prioritize(n) > 0)
+                .sort((a: string, b: string) => prioritize(b) - prioritize(a));
+
+            setDebugLog(`✅ Connection Success!\nAvailable Models:\n${targetModels.join('\n')}`);
+            alert(`✅ 接続成功！\n\n実際にシステムが使用するモデル候補（優先度順）:\n${targetModels.join('\n')}`);
         } catch (err: any) {
             setDebugLog(`❌ Connection Failed:\n${err.message}`);
             alert(`❌ 接続失敗：\n${err.message}\n\n※正しいAPIキーが入力されているか確認してください。`);
