@@ -1,6 +1,6 @@
 export interface ReasonDetail {
     text: string;
-    level: "Critical" | "Warning" | "Info" | "AI";
+    level: "Critical" | "Warning" | "Info" | "AI" | "Duplicate";
 }
 
 export interface LineData {
@@ -11,7 +11,7 @@ export interface LineData {
     noiseReason?: string;
     correction?: string;
     reasons?: ReasonDetail[]; // Individual reasons with their own levels
-    level?: "Critical" | "Warning" | "Info" | "AI"; // Overall highest severity of the line
+    level?: "Critical" | "Warning" | "Info" | "AI" | "Duplicate"; // Overall highest severity of the line
 }
 
 import { DETERMINISTIC_DICTIONARY, CORE_RULES, STYLE_DICTIONARY } from '../config/dictionaries';
@@ -222,7 +222,7 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
     const longHiragana = new RegExp(`[\\u3040-\\u309F]{${CORE_RULES.maxConsecutiveHiragana},}`);
     const longKanji = new RegExp(`[\\u4E00-\\u9FFF]{${CORE_RULES.maxConsecutiveKanji},}`);
     if (longHiragana.test(correction)) {
-        reasons.push({ text: "ひらがなが続いて読みにくい可能性があります（例：「だよね」の「ね」の前など、終助詞の直前で改行か半角スペースを入れるか、表記を工夫してください）", level: "Warning" });
+        reasons.push({ text: "ひらがなが続いて読みにくい可能性があります（「だよね」の「ね」が入る位置に改行または半角スペースを入れるなど、表記を工夫してください）", level: "Warning" });
         isChanged = true;
     }
     if (longKanji.test(correction)) {
@@ -239,6 +239,13 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
     return null;
 };
 
+export const extractStartTime = (timestamp: string): string => {
+    if (!timestamp) return "";
+    const firstPart = timestamp.split(/[\s->]/)[0];
+    const match = firstPart.match(/(\d{1,2}[:;]\d{2}[:;]\d{2})/);
+    return match ? match[1].replace(/;/g, ':') : firstPart;
+};
+
 export const parseTelopText = (text: string): LineData[] => {
     const lines = text.split(/\r?\n/);
     const parsedLines: LineData[] = [];
@@ -246,11 +253,18 @@ export const parseTelopText = (text: string): LineData[] => {
     let currentTimestamp = "";
 
     lines.forEach((line, index) => {
-        const trimmed = line.trim();
+        let trimmed = line.trim();
+        // 🚨 PremiereやVrewからのテキストに含まれる「内部的なソフト改行（Line SeparatorやVertical Tabなど）」を
+        // 描画・出力処理用に標準の \n に変換しておく
+        trimmed = trimmed.replace(/[\v\f\u2028\u2029\r]+/g, '\n');
 
         // Check if line is a timestamp range
-        // Supports both colons (00:00:00:00) and semicolons for drop-frame (00;00;00;00)
-        const timestampMatch = trimmed.match(/^(\d{2}[:;]\d{2}[:;]\d{2}[:;]\d{2})\s*-\s*(\d{2}[:;]\d{2}[:;]\d{2}[:;]\d{2})/);
+        // Supports:
+        // 00:00:00:00 - 00:00:00:00 (Premiere)
+        // 00;00;00;00 - 00;00;00;00 (Premiere Drop Frame)
+        // 00:00:29,000 --> 00:00:35,000 (Vrew / SRT)
+        // 0:00:29.000 --> 0:00:35.000
+        const timestampMatch = trimmed.match(/^(\d{1,2}[:;]\d{2}[:;]\d{2}[:;,.][0-9]{2,3})\s*(?:-|-->)\s*(\d{1,2}[:;]\d{2}[:;]\d{2}[:;,.][0-9]{2,3})/);
         if (timestampMatch) {
             currentTimestamp = trimmed;
             return;
@@ -295,7 +309,7 @@ export const parseTelopText = (text: string): LineData[] => {
             if (prevValid && prevValid.originalText === trimmed) {
                 const currentLine = parsedLines[parsedLines.length - 1];
                 currentLine.correction = "（重複行です）";
-                currentLine.reasons = [{ text: "前の行と内容が重複しています", level: "Warning" }]; // Changed to reasons array
+                currentLine.reasons = [{ text: "前の内容と重複しています", level: "Duplicate" }]; // Changed to Duplicate level
             } else {
                 const check = applyDeterministicRules(trimmed);
                 if (check) {

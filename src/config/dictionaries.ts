@@ -187,10 +187,9 @@ export const STYLE_DICTIONARY = [
   { pattern: /(目|手|顔|体|身体)付き/g, correct: '$1つき', reason: '接尾語「〜つき」はひらがな表記推奨' },
   { pattern: /(思った|以下の|予定|指示|希望|言う)通り/g, correct: '$1とおり', reason: '形式名詞的な「とおり」はひらがな表記推奨' },
 
-  // --- い抜き・ら抜き・連続ひらがな ---
-  { pattern: /(て|で)る/g, correct: '$1いる', reason: 'い抜き言葉の可能性' },
-  { pattern: /(て|で)て/g, correct: '$1いて', reason: 'い抜き言葉の可能性' },
-  { pattern: /(て|で)ない/g, correct: '$1いない', reason: 'い抜き言葉の可能性' },
+  { pattern: /(て|(?<=[んい])で)る/g, correct: '$1いる', reason: 'い抜き言葉の可能性' },
+  { pattern: /(て|(?<=[んい])で)て/g, correct: '$1いて', reason: 'い抜き言葉の可能性' },
+  { pattern: /(て|(?<=[んい])で)ない/g, correct: '$1いない', reason: 'い抜き言葉の可能性' },
   { pattern: /(っ)て(る|て|ない)/g, correct: '$1てい$2', reason: 'い抜き言葉の可能性' },
   { pattern: /(?<![らわやん疲忘入溢こぼも崩打折切割売取漏廃たた])(れ)れば/g, correct: 'られれば', reason: 'ら抜き言葉・口語表現の可能性' },
   { pattern: /([^ら])(せ|させ)れる/g, correct: '$1$2られる', reason: 'ら抜き言葉・口語表現の可能性' },
