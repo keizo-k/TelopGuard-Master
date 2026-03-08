@@ -150,7 +150,6 @@ export const STYLE_DICTIONARY = [
   { pattern: /(る|た|ない|の)様に/g, correct: '$1ように', reason: '「ように」はひらがな表記推奨' },
   { pattern: /余程/g, correct: 'よほど', reason: '「よほど」はひらがな表記推奨' },
   { pattern: /(じゃ|では)無い/g, correct: '$1ない', reason: '形式名詞の「無い」はひらがな表記推奨' },
-  { pattern: /(^|[^\u4E00-\u9FFF0-9０-９])時(?=$|\s|[\u3040-\u309F])/g, correct: '$1とき', reason: '形式名詞「とき」の可能性（ひらがな推奨）' },
   { pattern: /(て|やらせて|させて)頂く/g, correct: '$1いただく', reason: '補助動詞「頂く」はひらがな表記推奨' },
   { pattern: /(て|して)欲しい/g, correct: '$1ほしい', reason: '補助動詞「欲しい」はひらがな表記推奨' },
   { pattern: /(て)良い/g, correct: '$1よい', reason: '補助動詞「良い」はひらがな表記推奨（※「〜としても良い」など主語的な用法は対象外）' },
