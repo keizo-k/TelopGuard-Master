@@ -11,6 +11,8 @@ export type ShortcutAction =
     | 'nextLine'
     | 'prevIssue'
     | 'nextIssue'
+    | 'prevAICheck'
+    | 'nextAICheck'
     | 'copyCorrection'
     | 'copyTimecode'
     | 'copyDirector'
@@ -21,6 +23,8 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
     nextLine: '下の行（原文）へ',
     prevIssue: '前の修正行へジャンプ',
     nextIssue: '次の修正行へジャンプ',
+    prevAICheck: '前のAI指摘へジャンプ',
+    nextAICheck: '次のAI指摘へジャンプ',
     copyCorrection: '選択行の修正案をコピー',
     copyTimecode: '選択行のタイムコードをコピー',
     copyDirector: 'ディレクター向け形式でコピー',
@@ -32,16 +36,18 @@ export const DEFAULT_SHORTCUTS: Record<ShortcutAction, ShortcutKeyBinding> = {
     nextLine: { key: 'ArrowDown', ctrlKey: false, shiftKey: false, altKey: false, metaKey: false },
     prevIssue: { key: 'ArrowUp', ctrlKey: false, shiftKey: true, altKey: false, metaKey: false },
     nextIssue: { key: 'ArrowDown', ctrlKey: false, shiftKey: true, altKey: false, metaKey: false },
+    prevAICheck: { key: 'ArrowUp', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
+    nextAICheck: { key: 'ArrowDown', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
     copyCorrection: { key: 'v', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
     copyTimecode: { key: 'c', ctrlKey: true, shiftKey: false, altKey: false, metaKey: false },
     copyDirector: { key: 'c', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
-    copyReport: { key: 'c', ctrlKey: true, shiftKey: true, altKey: false, metaKey: false },
+    copyReport: { key: 'r', ctrlKey: false, shiftKey: false, altKey: true, metaKey: false },
 };
 
 export const formatShortcut = (binding: ShortcutKeyBinding): string => {
     const parts = [];
-    if (binding.ctrlKey) parts.push('Ctrl');
-    if (binding.altKey) parts.push('Alt');
+    if (binding.ctrlKey) parts.push('Cmd');
+    if (binding.altKey) parts.push('Option');
     if (binding.shiftKey) parts.push('Shift');
     if (binding.metaKey) parts.push('Meta');
 

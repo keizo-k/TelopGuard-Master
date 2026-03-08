@@ -117,3 +117,4 @@ out
 dist
 dist-ssr
 *.local
+vite.config.ts.timestamp-*

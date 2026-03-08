@@ -1,13 +1,14 @@
 import { LineData, extractStartTime } from '../utils/textProcessor';
 import { diffChars } from 'diff';
 import { Copy } from 'lucide-react';
+import { ShortcutAction, ShortcutKeyBinding, formatShortcut } from '../config/shortcuts';
 
 interface DiffViewerProps {
     lines: LineData[];
 }
 
 // 1行分の「右カラム（修正詳細）」を描画するコンポーネント
-export function DiffLineRight({ line }: { line: LineData }) {
+export function DiffLineRight({ line, shortcuts }: { line: LineData, shortcuts: Record<ShortcutAction, ShortcutKeyBinding> }) {
     if (!line.correction) {
         // 修正なし
         return (
@@ -31,15 +32,27 @@ export function DiffLineRight({ line }: { line: LineData }) {
         correctedElements = <span className="text-emerald-400 font-bold bg-emerald-950/80 px-1 py-0.5 rounded leading-relaxed">（修正案なし）</span>;
     } else {
         const diff = diffChars(line.originalText, line.correction || "");
+
+        const renderPart = (part: any, className: string, defaultClassName: string) => {
+            if (!part.value) return null;
+            // Split by newline and interleave with <br/> tags
+            return part.value.split('\n').map((str: string, i: number, arr: any[]) => (
+                <span key={`${part.value}-${i}`}>
+                    {str ? <span className={className || defaultClassName}>{str}</span> : null}
+                    {i < arr.length - 1 && <br />}
+                </span>
+            ));
+        };
+
         originalElements = diff.map((part, index) => {
             if (part.added) return null;
-            if (part.removed) return <span key={index} className="text-rose-400 font-bold bg-rose-950/80 px-0.5 rounded mx-0.5">{part.value}</span>;
-            return <span key={index} className="text-slate-300">{part.value}</span>;
+            if (part.removed) return <span key={index}>{renderPart(part, "text-rose-400 font-bold bg-rose-950/80 px-0.5 rounded mx-0.5", "")}</span>;
+            return <span key={index}>{renderPart(part, "", "text-slate-300")}</span>;
         });
         correctedElements = diff.map((part, index) => {
             if (part.removed) return null;
-            if (part.added) return <span key={index} className="text-emerald-400 font-bold bg-emerald-950/80 px-0.5 rounded mx-0.5">{part.value}</span>;
-            return <span key={index} className="text-slate-100">{part.value}</span>;
+            if (part.added) return <span key={index}>{renderPart(part, "text-emerald-400 font-bold bg-emerald-950/80 px-0.5 rounded mx-0.5", "")}</span>;
+            return <span key={index}>{renderPart(part, "", "text-slate-100")}</span>;
         });
     }
 
@@ -61,7 +74,9 @@ export function DiffLineRight({ line }: { line: LineData }) {
                         title="開始タイムコードをコピー"
                     >
                         <span className="flex items-center gap-1.5"><Copy size={12} />タイムコード</span>
-                        <kbd className="text-[9px] font-medium text-slate-400 bg-slate-800 px-1 py-0.5 rounded border border-slate-600/50 font-mono group-hover/btn:text-slate-200 group-hover/btn:border-slate-500 transition-colors">Ctrl+C</kbd>
+                        <kbd className="text-[9px] font-medium text-slate-400 bg-slate-800 px-1 py-0.5 rounded border border-slate-600/50 font-mono group-hover/btn:text-slate-200 group-hover/btn:border-slate-500 transition-colors">
+                            {formatShortcut(shortcuts.copyTimecode)}
+                        </kbd>
                     </button>
                     <button
                         onClick={(e) => {
@@ -73,7 +88,9 @@ export function DiffLineRight({ line }: { line: LineData }) {
                         title="修正案をコピー"
                     >
                         <span className="flex items-center gap-1.5"><Copy size={12} />修正案</span>
-                        <kbd className="text-[9px] font-medium text-indigo-400/80 bg-indigo-900/50 px-1 py-0.5 rounded border border-indigo-500/30 font-mono group-hover/btn:text-indigo-200 group-hover/btn:border-indigo-400 transition-colors">Ctrl+V</kbd>
+                        <kbd className="text-[9px] font-medium text-indigo-400/80 bg-indigo-900/50 px-1 py-0.5 rounded border border-indigo-500/30 font-mono group-hover/btn:text-indigo-200 group-hover/btn:border-indigo-400 transition-colors">
+                            {formatShortcut(shortcuts.copyCorrection)}
+                        </kbd>
                     </button>
                 </div>
             </div>
@@ -110,8 +127,12 @@ export function DiffLineRight({ line }: { line: LineData }) {
     );
 }
 
+interface LegacyDiffViewerProps extends DiffViewerProps {
+    shortcuts: Record<ShortcutAction, ShortcutKeyBinding>;
+}
+
 // 後方互換のため全行レンダリング版も残す（現在は App.tsx では使われない）
-export function DiffViewer({ lines }: DiffViewerProps) {
+export function DiffViewer({ lines, shortcuts }: LegacyDiffViewerProps) {
     return (
         <div className="space-y-4">
             <div className="text-xs font-bold border-b border-slate-700 pb-2 text-slate-500 uppercase tracking-wider">
@@ -121,7 +142,7 @@ export function DiffViewer({ lines }: DiffViewerProps) {
                 if (!line.correction && line.isNoise) return null;
                 return (
                     <div key={line.id} className={`py - 4 border - b border - slate - 800 ${line.correction ? 'bg-slate-800/20 px-4 rounded -mx-4' : ''} `}>
-                        <DiffLineRight line={line} />
+                        <DiffLineRight line={line} shortcuts={shortcuts} />
                     </div>
                 );
             })}

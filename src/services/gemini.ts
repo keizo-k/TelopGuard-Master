@@ -41,11 +41,12 @@ ${AI_CONTEXT_DICTIONARY}
     - 検索等を行っても判断に迷う場合は、「【要確認】〜の可能性はありませんか？」という形式で提案として出力すること。
     - 「上手く言いくるめる」のような正しい表現まで誤検知しないよう注意すること。
     - 明らかな誤入力（変身→返信）は修正せよ。
-    - **【漢数字のアラビア数字変換】**
-      数量や回数には半角のアラビア数字（1〜10）を使用してください。
-      （◯使用する例：1億2805万人、1番目、2番目、3つのボタン、2進法、第3回大会、3次元、4か月）
-      ただし、慣用的表現、熟語、概数、固有名詞、副詞など、漢数字を使用することが一般的な語句では漢数字のままにしてください。絶対に変換しないでください。
-      （◯使用する例：世界一、一時的、一部分、第三者、一種の、一部の、一番に、数百倍、二次関数、四捨五入、四角い、五大陸）
+    - **【数字表記のルール（アラビア数字と漢数字の使い分け）】**
+      **「1番」「2番」など、数えられる場合（順位や番号など）の数字は「半角のアラビア数字」が正しい表記です。**
+      （◯使用する例：1番、2番目、3つのボタン、第3回、4か月、1億2805万）
+      **ただし、慣用句、熟語、固有名詞などの場合は「漢数字」が正しい表記です。**
+      （◯使用する例：世界一、一番（副詞としての「もっとも」の意味の場合）、一時的、一部分、第三者、数百倍、四角い、五大陸）
+      ※ 原文が半角アラビア数字で「1番」等と正しく書かれているものを、熟語だと誤認して「一番」に修正しないよう特に注意してください。
 
 【出力フォーマット】
 修正が必要な行のみを、以下のJSON形式でリストアップしてください。
@@ -160,7 +161,7 @@ export async function checkTeopWithGemini(
 
     let allCorrections: any[] = [];
     let lastError;
-    const CHUNK_SIZE = 30; // 30 lines per API request to prevent timeout and allow progress tracking
+    const CHUNK_SIZE = 80; // 80 lines per API request to minimize total requests (Free tier limit is 15 RPM)
 
     let workingModel: any = null;
     let workingModelName = "";
@@ -197,7 +198,7 @@ ${JSON.stringify(inputJson, null, 2)}
 
                 // Add a small delay between chunks to avoid rate limit spikes (RPM limit mitigation)
                 if (i > 0) {
-                    await new Promise(resolve => setTimeout(resolve, 3500)); // 3.5秒待機してゆっくりリクエスト
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // 5秒待機してゆっくりリクエスト
                 }
 
                 const result = await model.generateContent([getSystemPrompt(), userPrompt]);
