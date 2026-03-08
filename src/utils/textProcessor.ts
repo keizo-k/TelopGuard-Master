@@ -242,8 +242,8 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
 export const extractStartTime = (timestamp: string): string => {
     if (!timestamp) return "";
     const firstPart = timestamp.split(/[\s->]/)[0];
-    const match = firstPart.match(/(\d{1,2}[:;]\d{2}[:;]\d{2})/);
-    return match ? match[1].replace(/;/g, ':') : firstPart;
+    const match = firstPart.match(/(\d{1,2}[:;]\d{2}[:;]\d{2}(?:[:;]\d{2})?)/);
+    return match ? match[1] : firstPart;
 };
 
 export const parseTelopText = (text: string): LineData[] => {

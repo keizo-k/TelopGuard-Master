@@ -23,12 +23,22 @@ export function DiffLineRight({ line, shortcuts }: { line: LineData, shortcuts: 
 
     const hasCorrection = line.originalText !== line.correction;
 
+    const renderLines = (text: string, className: string) => {
+        if (!text) return null;
+        return text.split('\n').map((str: string, i: number, arr: any[]) => (
+            <span key={i}>
+                {str ? <span className={className}>{str}</span> : null}
+                {i < arr.length - 1 && <br />}
+            </span>
+        ));
+    };
+
     if (line.correction === "（重複行です）") {
-        originalElements = <span className="text-rose-400 font-bold bg-rose-950/80 px-1 py-0.5 rounded leading-relaxed">{line.originalText}</span>;
+        originalElements = renderLines(line.originalText, "text-rose-400 font-bold bg-rose-950/80 px-1 py-0.5 rounded leading-relaxed");
         correctedElements = <span className="text-emerald-400 font-bold bg-emerald-950/80 px-1 py-0.5 rounded leading-relaxed">{line.correction}</span>;
     } else if (!hasCorrection) {
         // 修正案がない（警告のみ）の場合
-        originalElements = <span className="text-rose-400 font-bold bg-rose-950/80 px-1 py-0.5 rounded leading-relaxed">{line.originalText}</span>;
+        originalElements = renderLines(line.originalText, "text-rose-400 font-bold bg-rose-950/80 px-1 py-0.5 rounded leading-relaxed");
         correctedElements = <span className="text-emerald-400 font-bold bg-emerald-950/80 px-1 py-0.5 rounded leading-relaxed">（修正案なし）</span>;
     } else {
         const diff = diffChars(line.originalText, line.correction || "");
