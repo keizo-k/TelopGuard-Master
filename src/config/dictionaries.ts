@@ -135,7 +135,7 @@ export const STYLE_DICTIONARY = [
   { pattern: /但し/g, correct: 'ただし', reason: '「ただし」はひらがな表記推奨' },
   { pattern: /(先生|人|子ども|女性|男性|俺|僕|私)達/g, correct: '$1たち', reason: '接尾語の「達」はひらがな表記推奨' },
   { pattern: /(する|た|な)為/g, correct: '$1ため', reason: '形式名詞の「為」はひらがな表記推奨' },
-  { pattern: /出来る/g, correct: 'できる', reason: '「できる」はひらがな表記推奨' },
+  { pattern: /出来(る|ない|た|て|ず|ます|ません|れば|たら|っ)/g, correct: 'でき$1', reason: '動詞の「できる（できない等）」はひらがな表記推奨' },
   { pattern: /何処/g, correct: 'どこ', reason: '「どこ」はひらがな表記推奨' },
   { pattern: /乃至/g, correct: 'ないし', reason: '「ないし」はひらがな表記推奨' },
   { pattern: /尚(?![古])/g, correct: 'なお', reason: '「なお」はひらがな表記推奨（尚古等の熟語を除く）' },
