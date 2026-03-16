@@ -488,7 +488,7 @@ ${levelIcon} [${levelText}] ${line.timestamp || "(No Time)"}
             <header className="flex justify-between items-center px-6 py-4 bg-[#1e293b] border-b border-slate-700 shadow-md">
                 <h1 className="text-xl font-bold flex items-center gap-2 text-indigo-400">
                     <ShieldCheck className="w-6 h-6" />
-                    TelopGuard <span className="text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded-full">v2.5.3</span>
+                    TelopGuard <span className="text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded-full">v2.5.4</span>
                 </h1>
                 <div className="flex gap-4 items-center">
                     <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded border border-slate-600">
