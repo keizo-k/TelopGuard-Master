@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Upload, ShieldCheck, Play, Loader2, PlugZap, Settings } from 'lucide-react';
-import { parseTelopText, applyDeterministicRules, LineData, ReasonDetail, extractStartTime } from './utils/textProcessor';
+import { parseTelopText, applyDeterministicRules, LineData, ReasonDetail, extractStartTime, applyFileLevelConsistencyChecks } from './utils/textProcessor';
 import { checkTeopWithGemini, listAvailableModels } from './services/gemini';
 import { DiffLineRight } from './components/DiffViewer';
 import { SettingsModal } from './components/SettingsModal';
@@ -302,11 +302,13 @@ ${levelIcon} [${levelText}] ${line.timestamp || "(No Time)"}
                 }
                 return line;
             });
-            setLines(withDeterministic);
+            
+            const consistencyChecked = applyFileLevelConsistencyChecks(withDeterministic);
+            setLines(consistencyChecked);
             setIsAIChecked(false);
 
             // Auto-select the first line that has an issue, or 0 if none
-            const initialDisplayed = withDeterministic.filter(line => !(line.isNoise && !line.correction));
+            const initialDisplayed = consistencyChecked.filter(line => !(line.isNoise && !line.correction));
             if (initialDisplayed.length > 0) {
                 const firstIssueIndex = initialDisplayed.findIndex(line => !!line.correction);
                 setSelectedIndex(firstIssueIndex >= 0 ? firstIssueIndex : 0);
@@ -438,11 +440,12 @@ ${levelIcon} [${levelText}] ${line.timestamp || "(No Time)"}
                 return line;
             });
 
-            setLines(updatedLines);
+            const finalLines = applyFileLevelConsistencyChecks(updatedLines);
+            setLines(finalLines);
             setIsAIChecked(true);
 
             // Auto-select the first line that has an issue, or 0 if none
-            const finalDisplayed = updatedLines.filter(line => !(line.isNoise && !line.correction));
+            const finalDisplayed = finalLines.filter(line => !(line.isNoise && !line.correction));
             if (finalDisplayed.length > 0) {
                 const firstIssueIndex = finalDisplayed.findIndex(line => !!line.correction);
                 setSelectedIndex(firstIssueIndex >= 0 ? firstIssueIndex : 0);

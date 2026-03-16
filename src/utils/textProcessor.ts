@@ -14,7 +14,7 @@ export interface LineData {
     level?: "Critical" | "Warning" | "Info" | "AI" | "Duplicate"; // Overall highest severity of the line
 }
 
-import { DETERMINISTIC_DICTIONARY, CORE_RULES, STYLE_DICTIONARY } from '../config/dictionaries';
+import { DETERMINISTIC_DICTIONARY, CORE_RULES, STYLE_DICTIONARY, CONSISTENCY_CHECK_DICTIONARY } from '../config/dictionaries';
 import { FORMATTING_RULES } from '../config/rules';
 
 const NOISE_PATTERNS = [
@@ -322,3 +322,62 @@ export const parseTelopText = (text: string): LineData[] => {
 
     return parsedLines;
 };
+
+export const applyFileLevelConsistencyChecks = (lines: LineData[]): LineData[] => {
+    // 既存のオブジェクト配列を壊さずコピー（ただし各要素の中身も部分的にクローン）
+    const newLines = lines.map(line => ({
+        ...line,
+        reasons: line.reasons ? [...line.reasons] : []
+    }));
+
+    CONSISTENCY_CHECK_DICTIONARY.forEach(group => {
+        const foundVariants: { label: string, lineIds: string[] }[] = [];
+        
+        group.variants.forEach(variant => {
+            const matchedLineIds: string[] = [];
+            newLines.forEach(line => {
+                if (line.isNoise) return;
+                const textToCheck = line.correction || line.originalText;
+                // /g 付きの test は lastIndex がずれるため match を使用
+                if (textToCheck.match(variant.pattern)) {
+                    matchedLineIds.push(line.id);
+                }
+            });
+            if (matchedLineIds.length > 0) {
+                foundVariants.push({ label: variant.label, lineIds: matchedLineIds });
+            }
+        });
+
+        // 複数種類の表記が見つかった場合はすべてにWarningをつける
+        if (foundVariants.length > 1) {
+            const allLabels = foundVariants.map(v => v.label).join('」と「');
+            const warningMsg = `ファイル内で「${group.groupName}」が混在しています（「${allLabels}」）。表記を統一してください`;
+
+            foundVariants.forEach(variant => {
+                variant.lineIds.forEach(lineId => {
+                    const targetLine = newLines.find(l => l.id === lineId);
+                    if (targetLine) {
+                        // 既に同じ理由が追加されていないかチェック
+                        if (!targetLine.reasons?.some(r => r.text === warningMsg)) {
+                            targetLine.reasons = targetLine.reasons || [];
+                            targetLine.reasons.push({ text: warningMsg, level: "Warning" });
+                            
+                            // レベルの昇格（Info, AIよりWarningを優先。Criticalはそのまま）
+                            if (!targetLine.level || targetLine.level === "Info" || targetLine.level === "AI") {
+                                targetLine.level = "Warning";
+                            }
+                            
+                            // correctionが入っていない場合はoriginalTextを入れて差分表示できるようにする
+                            if (!targetLine.correction) {
+                                targetLine.correction = targetLine.originalText;
+                            }
+                        }
+                    }
+                });
+            });
+        }
+    });
+
+    return newLines;
+};
+
