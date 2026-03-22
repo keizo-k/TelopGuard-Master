@@ -14,8 +14,8 @@ export interface LineData {
     level?: "Critical" | "Warning" | "Info" | "AI" | "Duplicate"; // Overall highest severity of the line
 }
 
-import { DETERMINISTIC_DICTIONARY, CORE_RULES, STYLE_DICTIONARY, CONSISTENCY_CHECK_DICTIONARY } from '../config/dictionaries';
-import { FORMATTING_RULES } from '../config/rules';
+import { AppProfile } from '../dictionaries';
+import { FORMATTING_RULES, CORE_RULES } from '../config/rules';
 
 const NOISE_PATTERNS = [
     { reason: 'Plugin Error', regex: /^if\s*the\s*transition/i },
@@ -26,13 +26,13 @@ const NOISE_PATTERNS = [
 
 // Helper for strict rules
 
-export const applyDeterministicRules = (text: string): { text: string, reasons: ReasonDetail[] } | null => {
+export const applyDeterministicRules = (text: string, profile: AppProfile): { text: string, reasons: ReasonDetail[] } | null => {
     let correction = text;
     let reasons: ReasonDetail[] = [];
     let isChanged = false;
 
     // ----- [NEW] Rule 0: Deterministic Dictionary -----
-    DETERMINISTIC_DICTIONARY.forEach(entry => {
+    profile.deterministic.forEach(entry => {
         if (entry.pattern.test(correction)) {
             const temp = correction.replace(entry.pattern, entry.correct);
             if (temp !== correction) {
@@ -44,13 +44,14 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
     });
 
     // Rule 0.1: Full-width Space -> Half-width Space
-    if (FORMATTING_RULES.fullWidthSpace.pattern.test(correction)) {
+    if (profile.formatting.fullWidthSpaceToHalf && FORMATTING_RULES.fullWidthSpace.pattern.test(correction)) {
         correction = correction.replace(FORMATTING_RULES.fullWidthSpace.pattern, FORMATTING_RULES.fullWidthSpace.replacement);
         reasons.push({ text: FORMATTING_RULES.fullWidthSpace.reason, level: "Critical" });
         isChanged = true;
     }
 
     // Rule 0.2: Punctuation (、 。) -> Remove or Space
+    // (This is inherently part of formatting, checking fullWidthSymbolsToHalf as a proxy or just always applying. Let's make it always apply or use fullWidthSymbols)
     if (FORMATTING_RULES.punctuation.pattern.test(correction)) {
         correction = correction
             .replace(FORMATTING_RULES.punctuation.replaceMaru.pattern, FORMATTING_RULES.punctuation.replaceMaru.replacement)
@@ -61,21 +62,21 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
 
     // Rule 0.3: Consecutive Spaces -> Single Space
     // これにより Rule 0.2 で発生した余分なスペースも1つにまとまる
-    if (FORMATTING_RULES.consecutiveSpaces.pattern.test(correction)) {
+    if (profile.formatting.consecutiveSpacesToOne && FORMATTING_RULES.consecutiveSpaces.pattern.test(correction)) {
         correction = correction.replace(FORMATTING_RULES.consecutiveSpaces.pattern, FORMATTING_RULES.consecutiveSpaces.replacement);
         reasons.push({ text: FORMATTING_RULES.consecutiveSpaces.reason, level: "Critical" });
         isChanged = true;
     }
 
     // Rule 1: Full-width numbers -> Half-width
-    if (FORMATTING_RULES.fullWidthNumbers.pattern.test(correction)) {
+    if (profile.formatting.fullWidthNumbersToHalf && FORMATTING_RULES.fullWidthNumbers.pattern.test(correction)) {
         correction = correction.replace(FORMATTING_RULES.fullWidthNumbers.pattern, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
         reasons.push({ text: FORMATTING_RULES.fullWidthNumbers.reason, level: "Critical" }); // Changed to ReasonDetail object
         isChanged = true;
     }
 
     // Rule 1.5: Full-width Period/Comma -> Half-width (, .)
-    if (FORMATTING_RULES.fullWidthPeriodComma.pattern.test(correction)) {
+    if (profile.formatting.fullWidthSymbolsToHalf && FORMATTING_RULES.fullWidthPeriodComma.pattern.test(correction)) {
         correction = correction
             .replace(FORMATTING_RULES.fullWidthPeriodComma.replacePeriod.pattern, FORMATTING_RULES.fullWidthPeriodComma.replacePeriod.replacement)
             .replace(FORMATTING_RULES.fullWidthPeriodComma.replaceComma.pattern, FORMATTING_RULES.fullWidthPeriodComma.replaceComma.replacement);
@@ -84,7 +85,7 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
     }
 
     // Rule 1.6: Full-width Colon/Slash -> Half-width (: /)
-    if (FORMATTING_RULES.fullWidthColonSlash.pattern.test(correction)) {
+    if (profile.formatting.fullWidthSymbolsToHalf && FORMATTING_RULES.fullWidthColonSlash.pattern.test(correction)) {
         correction = correction
             .replace(FORMATTING_RULES.fullWidthColonSlash.replaceColon.pattern, FORMATTING_RULES.fullWidthColonSlash.replaceColon.replacement)
             .replace(FORMATTING_RULES.fullWidthColonSlash.replaceSlash.pattern, FORMATTING_RULES.fullWidthColonSlash.replaceSlash.replacement);
@@ -94,7 +95,7 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
 
     // Rule 2: Half-width Symbols -> Full-width
     // ※ ユーザー指定により、カンマ(,) と ピリオド(.) は除外（全角化の対象外、半角のままにする）
-    if (FORMATTING_RULES.halfWidthSymbolsToFull.pattern.test(correction)) {
+    if (profile.formatting.halfWidthSymbolsToFull && FORMATTING_RULES.halfWidthSymbolsToFull.pattern.test(correction)) {
         let tempCorrection = correction;
         let symbolsReplaced = false;
         let replacedChars = new Set<string>();
@@ -164,7 +165,7 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
     }
 
     // Rule 2.5: Half-width Katakana -> Full-width Katakana (Critical)
-    if (FORMATTING_RULES.halfWidthKatakana.pattern.test(correction)) {
+    if (profile.formatting.halfWidthKatakanaToFull && FORMATTING_RULES.halfWidthKatakana.pattern.test(correction)) {
         const kanaMap: { [key: string]: string } = {
             'ｶﾞ': 'ガ', 'ｷﾞ': 'ギ', 'ｸﾞ': 'グ', 'ｹﾞ': 'ゲ', 'ｺﾞ': 'ゴ',
             'ｻﾞ': 'ザ', 'ｼﾞ': 'ジ', 'ｽﾞ': 'ズ', 'ｾﾞ': 'ゼ', 'ｿﾞ': 'ゾ',
@@ -204,7 +205,7 @@ export const applyDeterministicRules = (text: string): { text: string, reasons: 
     // --- WARNING STRINGS (Context Depdendent) ---
 
     // Rule 3: 表現・表記ゆれの統一ルール（ひらがな・漢字の使い分け等）
-    STYLE_DICTIONARY.forEach(rule => {
+    profile.style.forEach(rule => {
         if (rule.pattern.test(correction)) {
             const temp = correction.replace(rule.pattern, rule.correct);
             if (temp !== correction) {
@@ -246,7 +247,7 @@ export const extractStartTime = (timestamp: string): string => {
     return match ? match[1] : firstPart;
 };
 
-export const parseTelopText = (text: string): LineData[] => {
+export const parseTelopText = (text: string, profile: AppProfile): LineData[] => {
     const lines = text.split(/\r?\n/);
     const parsedLines: LineData[] = [];
 
@@ -311,7 +312,7 @@ export const parseTelopText = (text: string): LineData[] => {
                 currentLine.correction = "（重複行です）";
                 currentLine.reasons = [{ text: "前の内容と重複しています", level: "Duplicate" }]; // Changed to Duplicate level
             } else {
-                const check = applyDeterministicRules(trimmed);
+                const check = applyDeterministicRules(trimmed, profile);
                 if (check) {
                     parsedLines[parsedLines.length - 1].correction = check.text;
                     parsedLines[parsedLines.length - 1].reasons = check.reasons; // Changed to reasons array
@@ -323,14 +324,14 @@ export const parseTelopText = (text: string): LineData[] => {
     return parsedLines;
 };
 
-export const applyFileLevelConsistencyChecks = (lines: LineData[]): LineData[] => {
+export const applyFileLevelConsistencyChecks = (lines: LineData[], profile: AppProfile): LineData[] => {
     // 既存のオブジェクト配列を壊さずコピー（ただし各要素の中身も部分的にクローン）
     const newLines = lines.map(line => ({
         ...line,
         reasons: line.reasons ? [...line.reasons] : []
     }));
 
-    CONSISTENCY_CHECK_DICTIONARY.forEach(group => {
+    profile.consistency.forEach(group => {
         const foundVariants: { label: string, lineIds: string[] }[] = [];
         
         group.variants.forEach(variant => {

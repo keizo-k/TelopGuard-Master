@@ -1,11 +1,15 @@
 {
     "name": "telop-guard",
     "private": true,
-    "version": "0.1.0",
+    "version": "3.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "vite build",
+        "dev": "vite --mode master",
+        "dev:skill-kakutoku": "vite --mode skill-kakutoku",
+        "dev:nakano-shiki": "vite --mode nakano-shiki",
+        "build": "vite build --mode master",
+        "build:skill-kakutoku": "vite build --mode skill-kakutoku",
+        "build:nakano-shiki": "vite build --mode nakano-shiki",
         "preview": "vite preview"
     },
     "dependencies": {

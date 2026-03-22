@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings, X, Keyboard } from 'lucide-react';
-import { ShortcutAction, ShortcutKeyBinding, SHORTCUT_LABELS, formatShortcut } from '../config/shortcuts';
+import { ShortcutAction, ShortcutKeyBinding, SHORTCUT_LABELS, formatShortcut, DEFAULT_SHORTCUTS } from '../config/shortcuts';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -116,7 +116,13 @@ export function SettingsModal({ isOpen, onClose, currentShortcuts, onSave }: Set
                     <div className="text-xs text-slate-400 font-medium">
                         ※ Windowsでは、Cmd = Ctrl、Option = Alt と読みかえてください。
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2 sm:gap-3 items-center">
+                        <button
+                            onClick={() => setTempShortcuts(DEFAULT_SHORTCUTS)}
+                            className="px-3 py-2 rounded text-xs font-medium text-amber-200/80 hover:text-amber-200 hover:bg-amber-950/50 transition-colors mr-2"
+                        >
+                            初期設定に戻す
+                        </button>
                         <button
                             onClick={onClose}
                             className="px-4 py-2 rounded text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"

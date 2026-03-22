@@ -81,3 +81,10 @@ export const FORMATTING_RULES = {
         reason: "カタカナは全角"
     }
 };
+
+export const CORE_RULES = {
+  // ひらがなが何文字続いたら「読みにくい」と警告を出すか
+  maxConsecutiveHiragana: 12,
+  // 漢字が何文字続いたら「読みにくい」と警告を出すか
+  maxConsecutiveKanji: 7,
+};

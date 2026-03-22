@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { LineData } from "../utils/textProcessor";
-import { AI_CONTEXT_DICTIONARY } from "../config/dictionaries";
+import { AppProfile } from "../dictionaries";
 
 // System Prompt that defines the strict rules
-const getSystemPrompt = () => `
+const getSystemPrompt = (profile: AppProfile) => `
 あなたはプロフェッショナルなテロップ校正AIです。
 以下の「厳格な制作ガイドライン」に基づき、ユーザーが入力したテロップテキストを校正してください。
 
@@ -18,7 +18,7 @@ const getSystemPrompt = () => `
 
 【プロジェクト固有の用語・人物辞典（判別用）】
 以下の人物名や用語が文脈に登場した場合、前後の文脈から同一人物の可能性がないかを判断し、必要に応じて提案してください：
-${AI_CONTEXT_DICTIONARY}
+${profile.aiContext}
 
 【制作ガイドライン】
 1. **指示事項**:
@@ -88,6 +88,7 @@ export async function listAvailableModels(apiKey: string) {
 export async function checkTeopWithGemini(
     apiKey: string,
     lines: LineData[],
+    profile: AppProfile,
     onProgress?: (current: number, total: number) => void
 ) {
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -106,30 +107,16 @@ export async function checkTeopWithGemini(
         // 2. Sort them by preference (Newer/Pro > Older/Flash)
         // User explicitly requested to prioritize 'Pro' models over 'Flash' for maximum accuracy.
         const prioritize = (name: string) => {
-            // 1st: The absolute best latest aliases
-            if (name === 'gemini-pro-latest') return 120;
-
-            // 2nd: The explicit new flagship Pro model
-            if (name === 'gemini-3.1-pro-preview') return 110;
-
-            // 3rd: The latest flash model
-            if (name === 'gemini-flash-latest') return 100;
-
-            // Filter out unwanted sub-variants (lite, audio, tts, vision, etc.)
-            if (name.includes('lite') || name.includes('audio') || name.includes('tts') || name.includes('vision') || name.includes('think')) {
-                return 0;
-            }
-
-            // 3rd: Current stable models
-            if (name === 'gemini-2.5-pro') return 90;
-
-            // Fallbacks (Flash models)
-            if (name === 'gemini-3.0-flash') return 80;
-            if (name === 'gemini-2.5-flash') return 70;
-            if (name === 'gemini-1.5-pro') return 60;
-            if (name === 'gemini-1.5-flash') return 50;
-            if (name === 'gemini-1.0-pro') return 40;
-
+            if (name.startsWith('gemini-pro-latest') || name.startsWith('gemini-1.5-pro-latest') || name.startsWith('gemini-2.5-pro-latest') || name.startsWith('gemini-3.0-pro-latest')) return 120;
+            if (name.startsWith('gemini-3.1-pro-preview') || name.startsWith('gemini-3.0-pro') || name.startsWith('gemini-3.1-pro')) return 110;
+            if (name.startsWith('gemini-flash-latest') || name.startsWith('gemini-1.5-flash-latest') || name.startsWith('gemini-2.5-flash-latest') || name.startsWith('gemini-3.0-flash-latest')) return 100;
+            if (name.includes('lite') || name.includes('audio') || name.includes('tts') || name.includes('vision') || name.includes('think') || name.includes('customtools') || name.includes('image')) return 0;
+            if (name.includes('gemini-2.5-pro')) return 90;
+            if (name.includes('gemini-3.0-flash')) return 80;
+            if (name.includes('gemini-2.5-flash')) return 70;
+            if (name.includes('gemini-1.5-pro')) return 60;
+            if (name.includes('gemini-1.5-flash')) return 50;
+            if (name.includes('gemini-1.0-pro')) return 40;
             return 0; // Filter out everything else
         };
 
@@ -201,7 +188,7 @@ ${JSON.stringify(inputJson, null, 2)}
                     await new Promise(resolve => setTimeout(resolve, 5000)); // 5秒待機してゆっくりリクエスト
                 }
 
-                const result = await model.generateContent([getSystemPrompt(), userPrompt]);
+                const result = await model.generateContent([getSystemPrompt(profile), userPrompt]);
                 const response = result.response;
                 const text = response.text();
 
