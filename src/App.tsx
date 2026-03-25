@@ -515,6 +515,15 @@ ${levelIcon} [${levelText}] ${line.timestamp || "(No Time)"}
                             value={apiKey}
                             onChange={(e) => saveApiKey(e.target.value)}
                         />
+                        <a 
+                            href="https://aistudio.google.com/app/apikey" 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            title="Gemini APIキーを無料で発行" 
+                            className="text-xs text-indigo-400 hover:text-indigo-300 underline ml-1"
+                        >
+                            取得
+                        </a>
                     </div>
                     <button onClick={testConnection} className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded transition-colors text-slate-300 flex items-center gap-1">
                         <PlugZap size={14} /> 接続テスト
