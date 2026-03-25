@@ -597,7 +597,7 @@ ${levelIcon} [${levelText}] ${line.timestamp || "(No Time)"}
                                 <input type="file" accept=".txt" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                                 <Upload size={48} className="mb-4 text-indigo-500" />
                                 <p className="font-bold text-lg text-slate-400">テキストファイルをドラッグ＆ドロップ</p>
-                                <p className="text-xs mt-2">.txt形式 (Premiere Pro / Vrew)</p>
+                                <p className="text-xs mt-2">.txt形式（Premiere Pro）</p>
                             </div>
                         </div>
                     ) : (
